@@ -1,0 +1,137 @@
+# Pong by: Armin Asadishad. 11/15-16/14
+# OPTIONAL: ticking bomb sprite. If explodes near some1's gutter they lose -2 points
+
+import random
+try:
+    import simplegui
+except:
+    import SimpleGUICS2Pygame.simpleguics2pygame as simplegui
+
+# globals
+width = 500
+height = 350
+pad_width = 10
+pad_height = 80
+half_pad_width = pad_width / 2 
+half_pad_height = pad_height / 2
+score1 = 0
+score2 = 0
+pad1_pos = float(height / 2) 
+pad2_pos = float(height / 2)
+pad1_speed = float(0) 
+pad2_speed = float(0) 
+pad_speed = 8
+ball_speed = [0,0] 
+ball_pos = [width / 2, height / 2 ] 
+ball_radius = 20 
+ballDirection = True
+
+# initialize ball_pos and ball_vel for new bal in middle of table
+# if direction is RIGHT, the ball's velocity is upper right, else upper left
+def spawn_ball(right):
+    global ball_pos, ball_speed # these are vectors stored as lists
+    ball_pos = [width / 2, height / 2 ]
+    if right:
+        ball_speed = [ random.randrange(2, 5), -(random.randrange(1, 4))] 
+    else:
+        ball_speed = [-(random.randrange(2, 5)), -(random.randrange(1, 4))] 
+
+# define event handlers
+def new_game():
+    global pad1_pos, pad2_pos # these are numbers
+    global score1, score2  # these are ints
+    score1 = 0
+    score2 = 0
+    pad1_pos = float(height / 2)
+    pad2_pos = float(height/ 2)
+    pad1_speed = float(0)
+    pad2_speed = float(0)
+    ballDirection = True
+    spawn_ball(ballDirection)
+
+def draw(canvas):
+    global score1, score2, pad1_pos, pad2_pos, ball_pos, ball_speed
+
+    # update paddle's vertical position, keep paddle on the screen
+    if pad1_pos + pad1_speed >= half_pad_height and pad1_pos + pad1_speed <= height - half_pad_height:
+        pad1_pos += pad1_speed # if we have: 'pad1_speed + pad1_pos' error is: local var pad1_speed referenced b4 assignment
+
+    if pad2_pos + pad2_speed >= half_pad_height and pad2_pos + pad2_speed <= height - half_pad_height:
+        pad2_pos += pad2_speed
+        
+    # draw mid line and gutters..predefined from 'coursera template'
+    canvas.draw_line([width / 2, 0],[width / 2, height], 1, "White")
+    canvas.draw_line([pad_width, 0],[pad_width, height], 1, "White")
+    canvas.draw_line([width - pad_width, 0],[width - pad_width, height], 1, "White")
+        
+    # update ball
+    ball_pos[0] = ball_pos[0] + ball_speed[0]
+    ball_pos[1] = ball_pos[1] + ball_speed[1]
+      
+    # draw ball
+    canvas.draw_circle(ball_pos, ball_radius, 5, "Gold", "Gold")
+    
+    # draw paddles
+    canvas.draw_line([half_pad_width, pad1_pos - half_pad_height], [half_pad_width, pad1_pos + half_pad_height], pad_width, "cyan")
+    canvas.draw_line([width - half_pad_width, pad2_pos - half_pad_height], [width - half_pad_width, pad2_pos + half_pad_height], pad_width, "cyan")
+
+    # Determine whether paddle and ball collide / reflection of ball with collide
+    if ball_pos[1] <= ball_radius or ball_pos[1] >= (height - 1) - ball_radius:
+        ball_speed[1] = -ball_speed[1]
+
+    # left collision detection
+    if (ball_pos[0] <= pad_width + ball_radius):
+        if (pad1_pos - half_pad_height <= ball_pos[1] <= pad1_pos + half_pad_height):
+            ball_speed[0] = -ball_speed[0] # testing.. when it's -= the ball contacts paddle & slides to gutter
+            # ball's speed over time
+            ball_speed[0] += ball_speed[0] * 0.05
+            ball_speed[1] += ball_speed[1] * 0.05
+        else:
+            score2 += 1
+            ballDirection = True
+            spawn_ball(ballDirection)
+            
+    # right collision detection
+    if (ball_pos[0] >= width - 1 - pad_width - ball_radius):
+            if (pad2_pos - half_pad_height <= ball_pos[1] <= pad2_pos + half_pad_height):
+                ball_speed[0] = -ball_speed[0]
+                ball_speed[0] += ball_speed[0] * 0.05
+                ball_speed[1] += ball_speed[1] * 0.05
+            else:
+                score1 += 1
+                ballDirection = False 
+                spawn_ball(ballDirection)
+ 
+    # draw scores
+    canvas.draw_text(str(score1), [100,100], 35, "Red")
+    canvas.draw_text(str(score2), [400,100], 35, "Red")
+ 
+def keydown(key):
+    global pad1_speed, pad2_speed
+    if key == simplegui.KEY_MAP['up']:
+        pad2_speed -= pad_speed
+    elif key == simplegui.KEY_MAP['down']:
+        pad2_speed += pad_speed
+    elif key == simplegui.KEY_MAP['w']:
+        pad1_speed -= pad_speed
+    elif key == simplegui.KEY_MAP['s']:
+        pad1_speed += pad_speed
+        
+def keyup(key):
+    global pad1_speed, pad2_speed
+    if key == simplegui.KEY_MAP['up']:
+        pad2_speed += pad_speed
+    elif key == simplegui.KEY_MAP['down']:
+        pad2_speed -= pad_speed
+    elif key == simplegui.KEY_MAP['w']:
+        pad1_speed += pad_speed
+    elif key == simplegui.KEY_MAP['s']:
+        pad1_speed -= pad_speed
+
+frame = simplegui.create_frame("Pong", width, height)
+frame.set_draw_handler(draw)
+frame.set_keydown_handler(keydown)
+frame.set_keyup_handler(keyup)
+frame.add_button("Restart", new_game, 100)
+new_game() 
+frame.start()
